@@ -34,9 +34,27 @@ namespace TowerFight.BusinessLogic.Services
                         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
                         Leaders = await context.Leaders
                             .AsNoTracking()
-                            .Where(l => l.Number <= MaxLeadersCount)
-                            .OrderBy(l => l.Difficulty).ThenBy(l => l.Number)
+                            // need to use subquery as groupBy+selectMany can't be traversed to sql, but seems subquery is optimal
+                            .Select(l => l.Difficulty)
+                            .Distinct()
+                            .SelectMany(difficulty => context.Leaders
+                                .Where(l => l.Difficulty == difficulty)
+                                .OrderByDescending(l => l.Score)
+                                .Take(MaxLeadersCount))
+                            //.GroupBy(l => l.Difficulty)
+                            //.SelectMany(g => g.OrderByDescending(l => l.Score).Take(MaxLeadersCount))                            
+                            //.OrderBy(l => l.Difficulty).ThenByDescending(l => l.Score)
                             .ToListAsync(cancellationToken);
+                            
+                            // alternative with rawsql
+                            //var leaders = await context.Leaders
+                            //.FromSqlRaw(@"
+                            //    SELECT * FROM (
+                            //        SELECT *, ROW_NUMBER() OVER (PARTITION BY Difficulty ORDER BY Score DESC) as Rank
+                            //        FROM Leaders
+                            //    ) AS t
+                            //    WHERE Rank <= {0}", MaxLeadersCount)
+                            //.ToListAsync(cancellationToken);
                     }, cancellationToken)
                 );
             
