@@ -12,6 +12,7 @@ public record LeaderDao
     public int Score { get; init; }
     [StringLength(32)]
     public string Name { get; init; }
-    [MapperIgnore]
     public Guid Guid { get; init; }
+    [MapperIgnore]
+    public DateTimeOffset TimeStamp { get; init; } = DateTimeOffset.UtcNow;
 }

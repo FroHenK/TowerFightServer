@@ -18,7 +18,7 @@ public static class InternalServicesExtensions
     {
         const string assemblyName = $"{nameof(TowerFight)}.{nameof(API)}";
 
-        var dbSettings = configuration.GetSection(nameof(DbSettings)).Get<DbSettings>()!;
+        var dbSettings = configuration.GetRequiredSection(nameof(DbSettings)).Get<DbSettings>()!;
 
         services.AddDbContextFactory<AppDbContext>(GetOptions);
         
