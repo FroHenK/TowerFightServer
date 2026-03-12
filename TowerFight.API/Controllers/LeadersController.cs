@@ -47,7 +47,7 @@ public class LeadersController(ILeadersService _LeadersService, IConfiguration c
             cancellationToken);
 
         return result.Match<IActionResult>(
-            success => Created(string.Empty, new InsertHighscoreResponse(success.Guid)),
+            success => Ok(new InsertHighscoreResponse(success.Guid)),
             nameError => Problem(nameError.Reason, statusCode: (int)HttpStatusCode.Conflict),
             noChanges => Accepted(string.Empty, noChanges.Reason)
             );
