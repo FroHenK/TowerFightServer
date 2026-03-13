@@ -15,7 +15,7 @@ public static class HighscoreHashUtility
     {
         var configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables()
-            .AddJsonFile("secrets.json")
+            .AddJsonFile("secrets.json", true)
             .Build();
         var signingSettings = configuration.GetSection(nameof(SigningSettings)).Get<SigningSettings>()!;
 
