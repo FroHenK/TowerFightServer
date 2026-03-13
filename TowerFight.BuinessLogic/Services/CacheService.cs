@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TowerFight.BusinessLogic.Data;
 using TowerFight.BusinessLogic.Data.Models;
 using TowerFight.BusinessLogic.Data.RedisCache;
@@ -12,26 +13,36 @@ namespace TowerFight.BusinessLogic.Services
         Task PushToDb(CancellationToken cancellationToken);
     }
 
-    public class CacheService(IRedisCache _redisCache, IDbContextFactory<AppDbContext> _dbContextFactory) : ICacheService
+    public class CacheService(IRedisCache _redisCache, IDbContextFactory<AppDbContext> _dbContextFactory, ILogger<CacheService> _logger) : ICacheService
     {
         const string leaderKey = nameof(Leader);            
         const string leaderCacheSet = nameof(Leader);
 
         public async Task ClearCache(CancellationToken cancellationToken)
         {
-            await _redisCache.RemoveAsync(leaderCacheSet, leaderKey);            
+            _logger.LogInformation("Clearing cache for key: {LeaderKey} in set: {LeaderCacheSet}", leaderKey, leaderCacheSet);
+            await _redisCache.RemoveAsync(leaderCacheSet, leaderKey);
+            _logger.LogInformation("Cache cleared for key: {LeaderKey}", leaderKey);
         }
 
         public async Task PushToDb(CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Pushing cache data to database.");
             if (!await IsDbAliveAsync(cancellationToken))
+            {
+                _logger.LogWarning("Database is not available. Aborting PushToDb.");
                 return;
+            }
 
             using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
             if ((await context.Leaders.AsNoTracking().FirstOrDefaultAsync(cancellationToken)) is not null)
+            {
+                _logger.LogInformation("Leaders already exist in database. Skipping push.");
                 return;
+            }
 
             var data = await GetFromRedis();
+            _logger.LogInformation("Retrieved {Count} leader entries from Redis.", data.Sum(x => x.Value.Count));
             var leaders = data.SelectMany(x => x.Value).Select(x => 
                 new LeaderDao
                 {
@@ -43,17 +54,24 @@ namespace TowerFight.BusinessLogic.Services
 
             await context.Leaders.AddRangeAsync(leaders, cancellationToken);
             await context.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Pushed leader data to database.");
         }
 
         private async Task<Dictionary<byte, List<Leader>>> GetFromRedis()
         {
-            return await _redisCache.GetAsync<Dictionary<byte, List<Leader>>>(leaderCacheSet, leaderKey) ?? [];
+            _logger.LogDebug("Getting leaders from Redis cache.");
+            var result = await _redisCache.GetAsync<Dictionary<byte, List<Leader>>>(leaderCacheSet, leaderKey) ?? [];
+            _logger.LogDebug("Retrieved {Count} leader groups from Redis.", result.Count);
+            return result;
         }
         
         private async Task<bool> IsDbAliveAsync(CancellationToken cancellationToken)
         {
+            _logger.LogDebug("Checking if database is alive.");
             await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-            return await db.Database.CanConnectAsync(cancellationToken);
+            var canConnect = await db.Database.CanConnectAsync(cancellationToken);
+            _logger.LogDebug("Database connectivity check result: {CanConnect}", canConnect);
+            return canConnect;
         }
     }    
 }

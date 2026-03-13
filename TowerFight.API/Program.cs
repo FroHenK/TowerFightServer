@@ -25,6 +25,7 @@ builder.Services
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     });
 builder.Services
+    .AddLogging() // Add logging from standard libraries
     .AddProblemDetails()
     .AddSwagger()
     .AddInternalServices()

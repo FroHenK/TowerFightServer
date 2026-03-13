@@ -9,16 +9,23 @@ public class HighscoreHashUtility
 {
     private readonly string _salt;
 
-    public HighscoreHashUtility(IConfiguration configuration)
+    private readonly ILogger<HighscoreHashUtility> _logger;
+
+    public HighscoreHashUtility(IConfiguration configuration, ILogger<HighscoreHashUtility> logger)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         var signingSettings = configuration.GetSection("SigningSettings").Get<SigningSettings>();
         _salt = signingSettings?.HighscoreHashSalt ?? throw new InvalidOperationException("HighscoreHashSalt not configured");
+        _logger.LogInformation("HighscoreHashUtility initialized with provided configuration.");
     }
 
     public bool IsValid(InsertHighscoreRequest request)
     {
+        _logger.LogInformation("Validating highscore request for Name: {Name}, Score: {Score}, Difficulty: {Difficulty}, Guid: {Guid}", request.Name, request.Score, request.Difficulty, request.Guid);
+
         if (string.IsNullOrWhiteSpace(request.Hash))
         {
+            _logger.LogWarning("Request hash is null or whitespace.");
             return false;
         }
 
@@ -41,6 +48,17 @@ public class HighscoreHashUtility
         var hashBytes = SHA256.HashData(payloadBytes);
         var expectedHash = Convert.ToHexString(hashBytes);
 
-        return string.Equals(expectedHash, request.Hash, StringComparison.OrdinalIgnoreCase);
+        bool isValid = string.Equals(expectedHash, request.Hash, StringComparison.OrdinalIgnoreCase);
+
+        if (isValid)
+        {
+            _logger.LogInformation("Highscore request is valid.");
+        }
+        else
+        {
+            _logger.LogWarning("Highscore request is invalid. Expected hash: {ExpectedHash}, Provided hash: {ProvidedHash}", expectedHash, request.Hash);
+        }
+
+        return isValid;
     }
 }
