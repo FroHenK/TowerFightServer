@@ -8,7 +8,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - DBSETTINGS__PGCONNECTIONSTRING=Host=pgdb;Database=TowerFightdb;Username=postgres;Password=IC@ntBel!eve1tsN0tAS3cur3P4ssw0rd!
+      - DBSETTINGS__PGCONNECTIONSTRING=Host=pgdb;Database=TowerFightdb;Username=postgres;Password=IC@ntBel!eve1tsN0tAS3cur3P4ssw0rd!;GSS Encryption Mode=Disable;
       - REDISSETTINGS__USEINMEMORYCACHE=true
       - BASICAUTH__USERNAME=admin
       - BASICAUTH__PASSWORD=admin
@@ -33,7 +33,7 @@ services:
       context: .
       dockerfile: Dockerfile.migrations
     environment:
-      - DBSETTINGS__PGCONNECTIONSTRING=Host=pgdb;Database=TowerFightdb;Username=postgres;Password=IC@ntBel!eve1tsN0tAS3cur3P4ssw0rd!
+      - DBSETTINGS__PGCONNECTIONSTRING=Host=pgdb;Database=TowerFightdb;Username=postgres;Password=IC@ntBel!eve1tsN0tAS3cur3P4ssw0rd!;GSS Encryption Mode=Disable;
     depends_on:
       pgdb:
         condition: service_healthy
