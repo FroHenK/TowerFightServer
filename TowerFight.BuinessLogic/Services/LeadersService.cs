@@ -30,7 +30,7 @@ namespace TowerFight.BusinessLogic.Services
             if (leadersDict is not null)
             {
                 _logger.LogInformation("Leaders found in cache.");
-                return LeaderMapper.MapList(MapDict(leadersDict));
+                return leadersDict.SelectMany(x => LeaderMapper.MapList(x.Value));
             }
 
             if (!await IsDbAliveAsync(cancellationToken))
@@ -44,7 +44,7 @@ namespace TowerFight.BusinessLogic.Services
             await InsertToRedis(leadersDict);
 
             _logger.LogInformation("Leaders retrieved from database and cached.");
-            return LeaderMapper.MapList(MapDict(leadersDict));
+            return leadersDict.SelectMany(x => LeaderMapper.MapList(x.Value));
         }
 
         public async Task<OneOf<InsertHighscoreSuccess, NameOwnedByAnotherAccountError, OperationOkNoChanges>> InsertHighscoreAsync(Leader candidate, Guid? guid, CancellationToken cancellationToken)
@@ -237,9 +237,6 @@ namespace TowerFight.BusinessLogic.Services
             _logger.LogInformation("Database connectivity: {CanConnect}.", canConnect);
             return canConnect;
         }
-
-        private static IEnumerable<Leader> MapDict(IDictionary<byte, List<Leader>> leadersDict) => 
-            leadersDict.SelectMany(x => x.Value).OrderBy(x => x.Difficulty).ThenByDescending(x => x.Score);
 
         private static NameOwnedByAnotherAccountError MakeNameError(string Name) =>
             new($"Name {Name} does not belong to your account, use different name");
